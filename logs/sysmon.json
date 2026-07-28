@@ -1,0 +1,70 @@
+[
+  {
+    "EventID": 1,
+    "SystemTime": "2026-07-18T09:12:03.221Z",
+    "Computer": "MEGLAB-WIN11A",
+    "User": "MEGLAB\\jsmith",
+    "Image": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "CommandLine": "\"chrome.exe\" --profile-directory=Default",
+    "ParentImage": "C:\\Windows\\explorer.exe",
+    "ProcessId": 4412,
+    "Hashes": "SHA256=9F2A1B...",
+    "Description": "Normal browser launch"
+  },
+  {
+    "EventID": 3,
+    "SystemTime": "2026-07-18T09:14:47.803Z",
+    "Computer": "MEGLAB-WIN11A",
+    "User": "MEGLAB\\jsmith",
+    "Image": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "SourceIp": "10.10.5.42",
+    "DestinationIp": "20.190.128.14",
+    "DestinationPort": 443,
+    "Description": "Legit connection to login.microsoftonline.com"
+  },
+  {
+    "EventID": 1,
+    "SystemTime": "2026-07-18T11:02:15.554Z",
+    "Computer": "MEGLAB-WIN11A",
+    "User": "MEGLAB\\jsmith",
+    "Image": "C:\\Users\\jsmith\\AppData\\Local\\Temp\\update_report.exe",
+    "CommandLine": "update_report.exe -silent",
+    "ParentImage": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "ProcessId": 6820,
+    "Hashes": "SHA256=7C3E9D...",
+    "Description": "Suspicious: unsigned binary dropped and executed from Chrome download, disguised as an updater. Likely phishing payload delivery (T1204 User Execution)."
+  },
+  {
+    "EventID": 1,
+    "SystemTime": "2026-07-18T11:02:19.117Z",
+    "Computer": "MEGLAB-WIN11A",
+    "User": "MEGLAB\\jsmith",
+    "Image": "C:\\Windows\\System32\\cmd.exe",
+    "CommandLine": "cmd.exe /c copy \"%LOCALAPPDATA%\\Google\\Chrome\\User Data\\Default\\Network\\Cookies\" %TEMP%\\c.db",
+    "ParentImage": "C:\\Users\\jsmith\\AppData\\Local\\Temp\\update_report.exe",
+    "ProcessId": 6902,
+    "Description": "Malicious: copying Chrome's cookie database to a staging location (T1539 Steal Web Session Cookie)."
+  },
+  {
+    "EventID": 3,
+    "SystemTime": "2026-07-18T11:03:02.442Z",
+    "Computer": "MEGLAB-WIN11A",
+    "User": "MEGLAB\\jsmith",
+    "Image": "C:\\Users\\jsmith\\AppData\\Local\\Temp\\update_report.exe",
+    "SourceIp": "10.10.5.42",
+    "DestinationIp": "185.220.101.47",
+    "DestinationPort": 443,
+    "Description": "Malicious: exfiltration of staged cookie database to external C2 IP (T1041 Exfiltration Over C2 Channel)."
+  },
+  {
+    "EventID": 1,
+    "SystemTime": "2026-07-18T11:03:10.998Z",
+    "Computer": "MEGLAB-WIN11A",
+    "User": "MEGLAB\\jsmith",
+    "Image": "C:\\Windows\\System32\\cmd.exe",
+    "CommandLine": "cmd.exe /c del %TEMP%\\c.db",
+    "ParentImage": "C:\\Users\\jsmith\\AppData\\Local\\Temp\\update_report.exe",
+    "ProcessId": 6944,
+    "Description": "Cleanup: staged cookie file deleted after exfil (T1070.004 File Deletion)."
+  }
+]
