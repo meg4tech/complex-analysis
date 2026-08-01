@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Simulation Coverage Dashboard — Ghost (Cring) Ransomware</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root{
+    --bg: #0A0C12;
+    --panel: #12151E;
+    --panel-2: #171B27;
+    --line: #232838;
+    --line-soft: #1B1F2C;
+    --text: #E7E9F0;
+    --muted: #8890A6;
+    --muted-2: #5D6479;
+    --ghost: #A78BFA;      /* signature spectral violet */
+    --ghost-dim: #6D5AA8;
+    --strong: #3DDC97;
+    --partial: #F2B84B;
+    --gap: #EF5B72;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    --sans: 'Inter', -apple-system, system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin:0; padding:0; }
+
+  body{
+    background: radial-gradient(1200px 600px at 15% -10%, rgba(167,139,250,0.08), transparent 60%),
+                radial-gradient(900px 500px at 100% 0%, rgba(239,91,114,0.05), transparent 55%),
+                var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 28px 20px 60px;
+  }
+
+  .wrap{ max-width: 1080px; margin: 0 auto; }
+
+  /* ---- header ---- */
+  .eyebrow{
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    color: var(--ghost);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .eyebrow::before{
+    content: "";
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ghost);
+    box-shadow: 0 0 8px 2px rgba(167,139,250,0.7);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
+
+  h1{
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 26px;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+  }
+  h1 .accent{ color: var(--ghost); }
+
+  .subhead{
+    color: var(--muted);
+    font-size: 14px;
+    max-width: 640px;
+    line-height: 1.55;
+    margin-bottom: 22px;
+  }
+  .subhead b{ color: var(--text); font-weight: 600; }
+
+  .source-tag{
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted-2);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    margin-bottom: 28px;
+  }
+  .source-tag .dot{ width:6px; height:6px; border-radius:50%; background: var(--gap); }
+
+  /* ---- stat cards ---- */
+  .stats{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+  .stat{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat::after{
+    content:"";
+    position:absolute; inset:0;
+    background: linear-gradient(135deg, rgba(167,139,250,0.06), transparent 60%);
+    pointer-events:none;
+  }
+  .stat .label{
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    margin-bottom: 8px;
+  }
+  .stat .value{
+    font-family: var(--mono);
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .stat .value.strong{ color: var(--strong); }
+  .stat .value.partial{ color: var(--partial); }
+  .stat .value.gap{ color: var(--gap); }
+  .stat .sub{ font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+
+  /* ---- filters ---- */
+  .filters{
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .filter-btn{
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 8px 14px;
+    border-radius: 7px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s ease;
+  }
+  .filter-btn:hover{ border-color: var(--ghost-dim); color: var(--text); }
+  .filter-btn.active{
+    background: rgba(167,139,250,0.12);
+    border-color: var(--ghost);
+    color: var(--text);
+  }
+  .filter-btn .count{
+    background: rgba(255,255,255,0.08);
+    padding: 1px 7px;
+    border-radius: 20px;
+    font-size: 11px;
+  }
+  .filter-btn.active .count{ background: rgba(167,139,250,0.25); color: var(--ghost); }
+
+  /* ---- table panel ---- */
+  .panel{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .panel-head{
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    display:flex;
+    justify-content: space-between;
+  }
+
+  .row{
+    display: grid;
+    grid-template-columns: 190px 1fr 90px;
+    align-items: center;
+    gap: 16px;
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--line-soft);
+    transition: background 0.15s ease;
+  }
+  .row:last-child{ border-bottom: none; }
+  .row:hover{ background: var(--panel-2); }
+
+  .row .tech{
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.3;
+  }
+  .row .tech .id{
+    display:block;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--muted-2);
+    margin-top: 2px;
+  }
+  .row .tech .flag{
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--ghost);
+    border: 1px solid var(--ghost-dim);
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  .bar-track{
+    height: 9px;
+    background: var(--line-soft);
+    border-radius: 5px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill{
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.5s cubic-bezier(.4,0,.2,1);
+  }
+  .bar-fill.strong{ background: linear-gradient(90deg, #2AB87C, var(--strong)); }
+  .bar-fill.partial{ background: linear-gradient(90deg, #D89A2E, var(--partial)); }
+  .bar-fill.gap{ background: var(--gap); width: 4px !important; opacity: 0.55; }
+
+  .row .count{
+    font-family: var(--mono);
+    font-size: 12px;
+    text-align: right;
+    color: var(--text);
+  }
+  .row .count .n{ font-weight: 700; }
+  .row .count.gap-count{ color: var(--gap); }
+
+  .row.hidden{ display: none; }
+
+  .legend{
+    display:flex; gap: 18px; padding: 12px 18px; font-size: 11.5px; color: var(--muted);
+    font-family: var(--mono); border-top: 1px solid var(--line); flex-wrap: wrap;
+  }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .legend i{ width:9px; height:9px; border-radius:2px; display:inline-block; }
+
+  .footer-note{
+    margin-top: 18px;
+    font-size: 11.5px;
+    color: var(--muted-2);
+    line-height: 1.6;
+    font-family: var(--mono);
+  }
+
+  @media (max-width: 700px){
+    .stats{ grid-template-columns: repeat(2,1fr); }
+    .row{ grid-template-columns: 1fr; row-gap: 8px; }
+    .row .count{ text-align: left; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">threat intelligence · simulation readiness</div>
+  <h1>Simulation Coverage <span class="accent">// Ghost (Cring)</span></h1>
+  <p class="subhead">
+    <b>How much of Ghost's attacker playbook we can actually validate.</b>
+    Each technique below is scored by how many Atomic Red Team tests exist for it — a proxy for whether
+    we can safely simulate the behaviour and confirm our detections fire, not a claim about live telemetry.
+  </p>
+  <div class="source-tag"><span class="dot"></span>CISA / FBI / MS-ISAC AA25-050A · ATT&amp;CK v16.1 · checked live against atomic-red-team master, 29 Jul 2026</div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="label">Techniques Mapped</div>
+      <div class="value">29</div>
+      <div class="sub">Across 9 ATT&amp;CK tactics</div>
+    </div>
+    <div class="stat">
+      <div class="label">Strong Coverage</div>
+      <div class="value strong">11</div>
+      <div class="sub">10+ Atomic tests each</div>
+    </div>
+    <div class="stat">
+      <div class="label">Partial Coverage</div>
+      <div class="value partial">13</div>
+      <div class="sub">1–9 tests, some low-fit</div>
+    </div>
+    <div class="stat">
+      <div class="label">Gaps</div>
+      <div class="value gap">5</div>
+      <div class="sub">Zero atomics — build custom</div>
+    </div>
+  </div>
+
+  <div class="filters" id="filters">
+    <button class="filter-btn active" data-filter="all">All <span class="count">29</span></button>
+    <button class="filter-btn" data-filter="strong">Strong <span class="count">11</span></button>
+    <button class="filter-btn" data-filter="partial">Partial <span class="count">13</span></button>
+    <button class="filter-btn" data-filter="gap">Gaps <span class="count">5</span></button>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <span>Technique</span>
+      <span>Atomic Red Team test depth</span>
+    </div>
+    <div id="rows"></div>
+    <div class="legend">
+      <span><i style="background:var(--strong)"></i>Strong (10+ tests)</span>
+      <span><i style="background:var(--partial)"></i>Partial (1–9 tests)</span>
+      <span><i style="background:var(--gap)"></i>Gap (0 tests)</span>
+      <span style="color:var(--ghost)">◆ flagged = thin or low-fit coverage, read the note</span>
+    </div>
+  </div>
+
+  <p class="footer-note">
+    Bar length is scaled relative to the deepest technique observed (T1105, 39 tests) — it is not a percentage of
+    "full" coverage, since no such ceiling exists. Average depth across the 24 techniques with any coverage: 10.1 tests.
+    Source data: <span style="color:var(--text)">ti-2026-07-29-ghost-cring-ransomware.md</span>.
+  </p>
+
+</div>
+
+<script>
+const DATA = [
+  { id: "T1105", name: "Ingress Tool Transfer", tests: 39, cat: "strong" },
+  { id: "T1087.002", name: "Domain Account Discovery", tests: 24, cat: "strong" },
+  { id: "T1059.001", name: "PowerShell", tests: 22, cat: "strong" },
+  { id: "T1018", name: "Remote System Discovery", tests: 22, cat: "strong" },
+  { id: "T1098", name: "Account Manipulation", tests: 17, cat: "strong" },
+  { id: "T1490", name: "Inhibit System Recovery", tests: 13, cat: "strong", flag: "Direct hit — matches Ghost's shadow-copy deletion exactly" },
+  { id: "T1135", name: "Network Share Discovery", tests: 12, cat: "strong" },
+  { id: "T1518.001", name: "Security Software Discovery", tests: 11, cat: "strong" },
+  { id: "T1136.001", name: "Create Local Account", tests: 10, cat: "strong" },
+  { id: "T1047", name: "Windows Management Instrumentation", tests: 10, cat: "strong", flag: "Core lateral movement mechanism" },
+  { id: "T1486", name: "Data Encrypted for Impact", tests: 10, cat: "strong" },
+  { id: "T1057", name: "Process Discovery", tests: 9, cat: "partial" },
+  { id: "T1003", name: "OS Credential Dumping", tests: 7, cat: "partial" },
+  { id: "T1059.003", name: "Windows Command Shell", tests: 6, cat: "partial" },
+  { id: "T1518", name: "Software Discovery", tests: 6, cat: "partial" },
+  { id: "T1136.002", name: "Create Domain Account", tests: 5, cat: "partial" },
+  { id: "T1134.001", name: "Token Impersonation/Theft", tests: 5, cat: "partial", flag: "Direct hit — literal \u201cBad Potato\u201d test" },
+  { id: "T1132.001", name: "Standard Encoding", tests: 3, cat: "partial" },
+  { id: "T1564.003", name: "Hidden Window", tests: 3, cat: "partial", flag: "Direct hit on -w hidden flag" },
+  { id: "T1071.001", name: "Application Layer Protocol: Web", tests: 3, cat: "partial" },
+  { id: "T1041", name: "Exfiltration Over C2 Channel", tests: 2, cat: "partial" },
+  { id: "T1567.002", name: "Exfiltration to Cloud Storage", tests: 2, cat: "partial", flag: "Direct hit — rclone-to-Mega matches reported usage" },
+  { id: "T1505.003", name: "Server Software Component: Web Shell", tests: 1, cat: "partial", flag: "Thin — supplement with a custom .aspx drop" },
+  { id: "T1573", name: "Encrypted Channel", tests: 1, cat: "partial", flag: "Low fit — targets victim email, not endpoint-detectable" },
+  { id: "T1562.001", name: "Impair Defenses: Disable or Modify Tools", tests: 0, cat: "gap", flag: "Priority 1 — Ghost's most detectable move, build a custom atomic" },
+  { id: "T1070.001", name: "Clear Windows Event Logs", tests: 0, cat: "gap", flag: "Priority 7 — build a custom wevtutil / Clear-EventLog atomic" },
+  { id: "T1190", name: "Exploit Public-Facing Application", tests: 0, cat: "gap", flag: "Inherently CVE-specific — validate via patch scanning instead" },
+  { id: "T1068", name: "Exploitation for Privilege Escalation", tests: 0, cat: "gap", flag: "Partially covered in practice by T1134.001 tooling" },
+  { id: "Chained", name: "Lateral Movement (WMIC \u2192 encoded PS \u2192 Beacon)", tests: 0, cat: "gap", flag: "No single atomic — chain T1047+T1132.001+T1564.003+T1105 manually" },
+];
+
+const MAX = Math.max(...DATA.map(d => d.tests));
+const rowsEl = document.getElementById("rows");
+
+function render(){
+  rowsEl.innerHTML = DATA.map(d => {
+    const pct = d.tests === 0 ? 0 : Math.max(6, Math.round((d.tests / MAX) * 100));
+    const flagHtml = d.flag ? `<span class="flag" title="${d.flag}">\u25c6</span>` : "";
+    return `
+      <div class="row" data-cat="${d.cat}">
+        <div class="tech">${d.name}${flagHtml}<span class="id">${d.id}</span></div>
+        <div class="bar-track"><div class="bar-fill ${d.cat}" style="width:${d.cat==='gap' ? 4 : pct}%"></div></div>
+        <div class="count ${d.cat==='gap' ? 'gap-count' : ''}"><span class="n">${d.tests}</span> test${d.tests===1?'':'s'}</div>
+      </div>`;
+  }).join("");
+}
+render();
+
+document.getElementById("filters").addEventListener("click", (e) => {
+  const btn = e.target.closest(".filter-btn");
+  if(!btn) return;
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  const f = btn.dataset.filter;
+  document.querySelectorAll(".row").forEach(r => {
+    r.classList.toggle("hidden", f !== "all" && r.dataset.cat !== f);
+  });
+});
+</script>
+</body>
+</html>

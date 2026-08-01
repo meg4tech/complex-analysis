@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Attack Progression Timeline — Ghost (Cring) Ransomware</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root{
+    --bg: #0A0C12;
+    --panel: #12151E;
+    --panel-2: #171B27;
+    --line: #232838;
+    --text: #E7E9F0;
+    --muted: #8890A6;
+    --muted-2: #5D6479;
+    --ghost: #A78BFA;
+    --ghost-dim: #6D5AA8;
+
+    --c-initial: #4EA1F5;   /* Initial Access */
+    --c-exec:    #A78BFA;   /* Execution */
+    --c-evasion: #F2B84B;   /* Defense Evasion */
+    --c-recon:   #2FD1B4;   /* Discovery / Credential Access */
+    --c-lateral: #E8804C;   /* Lateral Movement */
+    --c-impact:  #EF5B72;   /* Impact */
+
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    --sans: 'Inter', -apple-system, system-ui, sans-serif;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{
+    background: radial-gradient(1100px 550px at 85% -10%, rgba(167,139,250,0.07), transparent 55%), var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 28px 20px 50px;
+  }
+  .wrap{ max-width: 1100px; margin: 0 auto; }
+
+  .eyebrow{
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em;
+    color: var(--ghost); text-transform: uppercase;
+    display:flex; align-items:center; gap:8px; margin-bottom: 10px;
+  }
+  .eyebrow::before{
+    content:""; width:6px; height:6px; border-radius:50%; background:var(--ghost);
+    box-shadow: 0 0 8px 2px rgba(167,139,250,0.7); animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+
+  h1{ font-family: var(--mono); font-size: 26px; font-weight:700; letter-spacing:-0.01em; margin-bottom:6px; }
+  h1 .accent{ color: var(--ghost); }
+  .subhead{ color: var(--muted); font-size:14px; max-width: 680px; line-height:1.55; margin-bottom: 22px; }
+  .subhead b{ color: var(--text); font-weight:600; }
+
+  .toolbar{
+    display:flex; align-items:center; justify-content: space-between;
+    margin-bottom: 18px; flex-wrap: wrap; gap: 12px;
+  }
+  .legend{ display:flex; gap:14px; flex-wrap:wrap; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .legend i{ width:9px; height:9px; border-radius:2px; display:inline-block; }
+
+  .zoom-controls{
+    display:flex; align-items:center; gap:6px;
+    background: var(--panel); border:1px solid var(--line); border-radius: 8px; padding: 4px;
+    font-family: var(--mono);
+  }
+  .zoom-controls button{
+    width: 28px; height: 28px; border-radius: 6px; border: none; background: transparent;
+    color: var(--text); font-size: 15px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition: background 0.15s ease;
+  }
+  .zoom-controls button:hover{ background: var(--panel-2); }
+  .zoom-controls .pct{ font-size: 11.5px; color: var(--muted); width: 44px; text-align:center; }
+
+  .timeline-panel{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 40px 30px 30px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .track-wrap{ position: relative; min-height: 210px; }
+  .track-line{
+    position: absolute; top: 90px; left: 0; height: 2px;
+    background: linear-gradient(90deg, var(--line), rgba(167,139,250,0.25), var(--line));
+  }
+
+  .nodes{ position: relative; display: flex; align-items: flex-start; }
+
+  .node{
+    position: relative;
+    flex: 0 0 auto;
+    display:flex; flex-direction:column; align-items:center;
+    cursor: pointer;
+    padding-top: 50px;
+  }
+  .node .time{
+    position:absolute; top: 0; left:50%; transform: translateX(-50%);
+    font-family: var(--mono); font-size: 11px; font-weight:600; color: var(--muted);
+    white-space: nowrap;
+  }
+  .node.active .time{ color: var(--text); }
+
+  .dot{
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 2px var(--line);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    position: relative; z-index: 2;
+  }
+  .node:hover .dot, .node.active .dot{ transform: scale(1.25); }
+  .node.active .dot{ box-shadow: 0 0 0 3px currentColor, 0 0 14px 2px currentColor; }
+
+  .node .label{
+    margin-top: 14px;
+    font-size: 12px;
+    text-align: center;
+    color: var(--muted);
+    max-width: 130px;
+    line-height: 1.35;
+    white-space: normal;
+  }
+  .node.active .label{ color: var(--text); font-weight: 600; }
+
+  .detail-panel{
+    margin-top: 26px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--ghost);
+    border-radius: 10px;
+    padding: 20px 22px;
+    display: none;
+  }
+  .detail-panel.show{ display: block; }
+  .detail-head{ display:flex; align-items:center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .detail-cat{
+    font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 3px 9px; border-radius: 5px; color: #0A0C12; font-weight: 700;
+  }
+  .detail-time{ font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .detail-title{ font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .detail-body{ font-size: 13.5px; color: var(--muted); line-height: 1.6; margin-bottom: 10px; }
+  .detail-techs{ display:flex; gap:8px; flex-wrap:wrap; }
+  .detail-techs span{
+    font-family: var(--mono); font-size: 11px; color: var(--ghost);
+    border: 1px solid var(--ghost-dim); border-radius: 5px; padding: 2px 8px;
+  }
+
+  .footer-note{ margin-top: 18px; font-size: 11.5px; color: var(--muted-2); line-height:1.6; font-family: var(--mono); }
+
+  @media (max-width: 700px){
+    .timeline-panel{ padding: 30px 16px 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">threat intelligence · attack progression</div>
+  <h1>Attack Timeline <span class="accent">// Ghost (Cring)</span></h1>
+  <p class="subhead">
+    <b>How a typical Ghost intrusion unfolds, start to ransom.</b>
+    Built from FBI-observed behaviour in the joint advisory. There's no fixed clock — Ghost has moved
+    from first foothold to full encryption within a single day in multiple cases. Click any point for detail.
+  </p>
+
+  <div class="toolbar">
+    <div class="legend">
+      <span><i style="background:var(--c-initial)"></i>Initial Access</span>
+      <span><i style="background:var(--c-exec)"></i>Execution</span>
+      <span><i style="background:var(--c-evasion)"></i>Defense Evasion</span>
+      <span><i style="background:var(--c-recon)"></i>Discovery &amp; Credential Access</span>
+      <span><i style="background:var(--c-lateral)"></i>Lateral Movement</span>
+      <span><i style="background:var(--c-impact)"></i>Impact</span>
+    </div>
+    <div class="zoom-controls">
+      <button id="zoomOut">\u2212</button>
+      <div class="pct" id="zoomPct">100%</div>
+      <button id="zoomIn">+</button>
+      <button id="zoomReset" title="Reset zoom" style="font-size:11px;">\u21bb</button>
+    </div>
+  </div>
+
+  <div class="timeline-panel">
+    <div class="track-wrap">
+      <div class="track-line" id="trackLine"></div>
+      <div class="nodes" id="nodes"></div>
+    </div>
+  </div>
+
+  <div class="detail-panel" id="detail"></div>
+
+  <p class="footer-note">
+    Source: CISA / FBI / MS-ISAC AA25-050A, "#StopRansomware: Ghost (Cring) Ransomware." Times are relative
+    (hour-since-foothold), reflecting the advisory's own description of a same-day compromise-to-ransom pattern —
+    not a specific incident timeline.
+  </p>
+
+</div>
+
+<script>
+const EVENTS = [
+  {
+    time: "Hour 0", cat: "initial", color: "var(--c-initial)",
+    title: "Exploit an unpatched system",
+    label: "Exploits an unpatched internet-facing system",
+    body: "Ghost gains initial access by exploiting known CVEs in internet-facing Fortinet FortiOS, Adobe ColdFusion, Microsoft SharePoint, or Microsoft Exchange (the ProxyShell chain) \u2014 targeting whichever unpatched system it finds, opportunistically.",
+    techs: ["T1190"]
+  },
+  {
+    time: "Hour 0", cat: "exec", color: "var(--c-exec)",
+    title: "Deploy web shell & Beacon",
+    label: "Web shell uploaded, Cobalt Strike deployed",
+    body: "A web shell is uploaded to the compromised server. Windows Command Prompt or PowerShell is then used to download and execute Cobalt Strike Beacon malware, which is implanted on the victim system.",
+    techs: ["T1505.003", "T1059.001", "T1059.003", "T1105"]
+  },
+  {
+    time: "Hour 0\u20131", cat: "evasion", color: "var(--c-evasion)",
+    title: "Disable Windows Defender",
+    label: "Defenses disabled in one command",
+    body: "A single Set-MpPreference PowerShell command disables real-time monitoring, behaviour monitoring, script scanning, and sample submission \u2014 seven Defender protections in one invocation. This is Ghost's single most distinctive, most detectable move.",
+    techs: ["T1562.001"]
+  },
+  {
+    time: "Hour 1\u20132", cat: "recon", color: "var(--c-recon)",
+    title: "Harvest credentials",
+    label: "Passwords and hashes stolen",
+    body: "Cobalt Strike's built-in \u201chashdump\u201d function or Mimikatz is used to collect passwords and password hashes, supporting further unauthorized logins, privilege escalation, and pivoting to other systems.",
+    techs: ["T1003"]
+  },
+  {
+    time: "Hour 1\u20134", cat: "recon", color: "var(--c-recon)",
+    title: "Map the network",
+    label: "Accounts, shares, and hosts enumerated",
+    body: "Built-in Cobalt Strike commands and open-source tools (SharpShares, Ladon 911, SharpNBTScan) enumerate domain accounts, network shares, and other reachable systems \u2014 reconnaissance a legitimate administrator would be unlikely to perform this way.",
+    techs: ["T1087.002", "T1135", "T1018"]
+  },
+  {
+    time: "Hour 4\u201312", cat: "lateral", color: "var(--c-lateral)",
+    title: "Spread to other hosts",
+    label: "WMIC + encoded PowerShell spreads Beacon",
+    body: "Elevated access and WMIC are used to run a base64-encoded PowerShell command on additional systems, detonating Beacon in memory on each. If lateral movement fails, Ghost has been observed abandoning the target entirely rather than persisting.",
+    techs: ["T1047", "T1132.001", "T1564.003"]
+  },
+  {
+    time: "Same day", cat: "impact", color: "var(--c-impact)",
+    title: "Erase recovery options",
+    label: "Shadow copies deleted, logs cleared",
+    body: "Before encryption, the Volume Shadow Copy Service is disabled and shadow copies are deleted to inhibit recovery. Windows Event Logs are cleared at execution to slow investigation.",
+    techs: ["T1490", "T1070.001"]
+  },
+  {
+    time: "Same day", cat: "impact", color: "var(--c-impact)",
+    title: "Encrypt and demand ransom",
+    label: "Files encrypted, ransom note dropped",
+    body: "Cring.exe, Ghost.exe, ElysiumO.exe, or Locker.exe encrypts a directory or the entire system depending on the command-line arguments used. A ransom note follows, typically demanding tens to hundreds of thousands of dollars in cryptocurrency.",
+    techs: ["T1486"]
+  },
+];
+
+const nodesEl = document.getElementById("nodes");
+const trackLine = document.getElementById("trackLine");
+const detailEl = document.getElementById("detail");
+let zoom = 1;
+let activeIdx = null;
+
+function catColorVar(cat){
+  return {
+    initial: "var(--c-initial)", exec: "var(--c-exec)", evasion: "var(--c-evasion)",
+    recon: "var(--c-recon)", lateral: "var(--c-lateral)", impact: "var(--c-impact)"
+  }[cat];
+}
+
+function render(){
+  const gap = 150 * zoom;
+  nodesEl.style.gap = gap + "px";
+  nodesEl.innerHTML = EVENTS.map((e, i) => `
+    <div class="node ${i===activeIdx ? 'active':''}" data-i="${i}" style="color:${catColorVar(e.cat)}; width:${130*zoom}px;">
+      <div class="time">${e.time}</div>
+      <div class="dot" style="background:${catColorVar(e.cat)}"></div>
+      <div class="label">${e.label}</div>
+    </div>
+  `).join("");
+  trackLine.style.width = nodesEl.scrollWidth + "px";
+}
+
+function showDetail(i){
+  activeIdx = i;
+  const e = EVENTS[i];
+  detailEl.innerHTML = `
+    <div class="detail-head">
+      <span class="detail-cat" style="background:${catColorVar(e.cat)}">${e.cat.replace('recon','discovery')}</span>
+      <span class="detail-time">${e.time}</span>
+    </div>
+    <div class="detail-title">${e.title}</div>
+    <div class="detail-body">${e.body}</div>
+    <div class="detail-techs">${e.techs.map(t => `<span>${t}</span>`).join("")}</div>
+  `;
+  detailEl.classList.add("show");
+  render();
+}
+
+nodesEl.addEventListener("click", (ev) => {
+  const node = ev.target.closest(".node");
+  if(!node) return;
+  showDetail(parseInt(node.dataset.i, 10));
+});
+
+document.getElementById("zoomIn").addEventListener("click", () => {
+  zoom = Math.min(2, +(zoom + 0.15).toFixed(2));
+  document.getElementById("zoomPct").textContent = Math.round(zoom*100) + "%";
+  render();
+});
+document.getElementById("zoomOut").addEventListener("click", () => {
+  zoom = Math.max(0.6, +(zoom - 0.15).toFixed(2));
+  document.getElementById("zoomPct").textContent = Math.round(zoom*100) + "%";
+  render();
+});
+document.getElementById("zoomReset").addEventListener("click", () => {
+  zoom = 1;
+  document.getElementById("zoomPct").textContent = "100%";
+  render();
+});
+
+render();
+showDetail(0);
+</script>
+</body>
+</html>
